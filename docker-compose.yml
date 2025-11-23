@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: gdsc-meet-server
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost
+      - MAX_PARTICIPANTS_PER_ROOM=50
+      - LOG_LEVEL=info
+    volumes:
+      - ./server/logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - gdsc-meet-network
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      args:
+        - VITE_SERVER_URL=http://localhost:3001
+        - VITE_STUN_SERVER=stun:stun.l.google.com:19302
+    container_name: gdsc-meet-client
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+    networks:
+      - gdsc-meet-network
+
+networks:
+  gdsc-meet-network:
+    driver: bridge
