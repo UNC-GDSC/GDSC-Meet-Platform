@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gdsc-meet-server
+  labels:
+    app: gdsc-meet
+    component: server
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+    name: http
+  selector:
+    app: gdsc-meet
+    component: server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gdsc-meet-client
+  labels:
+    app: gdsc-meet
+    component: client
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: gdsc-meet
+    component: client

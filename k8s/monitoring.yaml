@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: gdsc-meet-metrics
+  labels:
+    app: gdsc-meet
+spec:
+  selector:
+    matchLabels:
+      app: gdsc-meet
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: 'gdsc-meet-server'
+        static_configs:
+          - targets: ['gdsc-meet-server:3001']
+
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: gdsc-meet
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "title": "GDSC Meet Platform Metrics",
+        "panels": [
+          {
+            "title": "Active Rooms",
+            "targets": [
+              {
+                "expr": "gdsc_meet_active_rooms"
+              }
+            ]
+          },
+          {
+            "title": "Total Participants",
+            "targets": [
+              {
+                "expr": "sum(gdsc_meet_participants_per_room)"
+              }
+            ]
+          },
+          {
+            "title": "CPU Usage",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"gdsc-meet.*\"}[5m])"
+              }
+            ]
+          },
+          {
+            "title": "Memory Usage",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"gdsc-meet.*\"}"
+              }
+            ]
+          }
+        ]
+      }
+    }

@@ -11,7 +11,17 @@ class RoomManager {
     this.maxParticipantsPerRoom = maxParticipantsPerRoom;
   }
 
-  createRoom(roomName: string, creatorId: string, creatorName: string, socketId: string): Room {
+  createRoom(
+    roomName: string,
+    creatorId: string,
+    creatorName: string,
+    socketId: string,
+    options?: {
+      waitingRoomEnabled?: boolean;
+      hasPassword?: boolean;
+      maxParticipants?: number;
+    }
+  ): Room {
     const roomId = uuidv4();
 
     const creator: Participant = {
@@ -21,6 +31,8 @@ class RoomManager {
       isAudioEnabled: true,
       isVideoEnabled: true,
       isScreenSharing: false,
+      isHandRaised: false,
+      role: 'host',
       joinedAt: new Date(),
     };
 
@@ -30,6 +42,12 @@ class RoomManager {
       participants: new Map([[creatorId, creator]]),
       createdAt: new Date(),
       createdBy: creatorId,
+      hostId: creatorId,
+      isLocked: false,
+      hasPassword: options?.hasPassword || false,
+      waitingRoomEnabled: options?.waitingRoomEnabled || false,
+      recordingEnabled: false,
+      maxParticipants: options?.maxParticipants || this.maxParticipantsPerRoom,
     };
 
     this.rooms.set(roomId, room);
@@ -51,7 +69,11 @@ class RoomManager {
       return { success: false, error: 'Room not found' };
     }
 
-    if (room.participants.size >= this.maxParticipantsPerRoom) {
+    if (room.isLocked) {
+      return { success: false, error: 'Room is locked' };
+    }
+
+    if (room.participants.size >= room.maxParticipants) {
       return { success: false, error: 'Room is full' };
     }
 
@@ -62,6 +84,8 @@ class RoomManager {
       isAudioEnabled: true,
       isVideoEnabled: true,
       isScreenSharing: false,
+      isHandRaised: false,
+      role: 'participant',
       joinedAt: new Date(),
     };
 
@@ -83,6 +107,14 @@ class RoomManager {
 
     if (room) {
       room.participants.delete(participantId);
+
+      // If host leaves, assign new host
+      if (room.hostId === participantId && room.participants.size > 0) {
+        const newHost = Array.from(room.participants.values())[0];
+        room.hostId = newHost.id;
+        newHost.role = 'host';
+        logger.info(`New host assigned: ${newHost.id} in room ${roomId}`);
+      }
 
       if (room.participants.size === 0) {
         this.rooms.delete(roomId);
@@ -111,6 +143,8 @@ class RoomManager {
       isAudioEnabled?: boolean;
       isVideoEnabled?: boolean;
       isScreenSharing?: boolean;
+      isHandRaised?: boolean;
+      reaction?: string;
     }
   ): boolean {
     const room = this.getRoomByParticipant(participantId);
@@ -134,6 +168,17 @@ class RoomManager {
     if (updates.isScreenSharing !== undefined) {
       participant.isScreenSharing = updates.isScreenSharing;
     }
+    if (updates.isHandRaised !== undefined) {
+      participant.isHandRaised = updates.isHandRaised;
+    }
+    if (updates.reaction !== undefined) {
+      participant.reaction = updates.reaction;
+
+      // Clear reaction after 5 seconds
+      setTimeout(() => {
+        participant.reaction = undefined;
+      }, 5000);
+    }
 
     return true;
   }
@@ -155,6 +200,98 @@ class RoomManager {
     return true;
   }
 
+  kickParticipant(roomId: string, participantId: string, hostId: string): boolean {
+    const room = this.rooms.get(roomId);
+
+    if (!room || room.hostId !== hostId) {
+      return false;
+    }
+
+    if (participantId === hostId) {
+      return false; // Can't kick yourself
+    }
+
+    room.participants.delete(participantId);
+    this.participantToRoom.delete(participantId);
+
+    logger.info(`Participant ${participantId} kicked from room ${roomId}`);
+    return true;
+  }
+
+  muteParticipant(roomId: string, participantId: string, hostId: string): boolean {
+    const room = this.rooms.get(roomId);
+
+    if (!room || room.hostId !== hostId) {
+      return false;
+    }
+
+    const participant = room.participants.get(participantId);
+    if (!participant) {
+      return false;
+    }
+
+    participant.isAudioEnabled = false;
+    logger.info(`Participant ${participantId} muted in room ${roomId}`);
+    return true;
+  }
+
+  muteAllParticipants(roomId: string, hostId: string): boolean {
+    const room = this.rooms.get(roomId);
+
+    if (!room || room.hostId !== hostId) {
+      return false;
+    }
+
+    room.participants.forEach((participant) => {
+      if (participant.id !== hostId) {
+        participant.isAudioEnabled = false;
+      }
+    });
+
+    logger.info(`All participants muted in room ${roomId}`);
+    return true;
+  }
+
+  lockRoom(roomId: string, hostId: string): boolean {
+    const room = this.rooms.get(roomId);
+
+    if (!room || room.hostId !== hostId) {
+      return false;
+    }
+
+    room.isLocked = true;
+    logger.info(`Room ${roomId} locked`);
+    return true;
+  }
+
+  unlockRoom(roomId: string, hostId: string): boolean {
+    const room = this.rooms.get(roomId);
+
+    if (!room || room.hostId !== hostId) {
+      return false;
+    }
+
+    room.isLocked = false;
+    logger.info(`Room ${roomId} unlocked`);
+    return true;
+  }
+
+  setRecordingStatus(roomId: string, status: boolean): boolean {
+    const room = this.rooms.get(roomId);
+
+    if (!room) {
+      return false;
+    }
+
+    room.recordingEnabled = status;
+    return true;
+  }
+
+  isHost(roomId: string, participantId: string): boolean {
+    const room = this.rooms.get(roomId);
+    return room?.hostId === participantId;
+  }
+
   getAllRooms(): Room[] {
     return Array.from(this.rooms.values());
   }
@@ -171,6 +308,9 @@ class RoomManager {
       name: room.name,
       participantCount: room.participants.size,
       createdAt: room.createdAt,
+      isLocked: room.isLocked,
+      hasPassword: room.hasPassword,
+      recordingEnabled: room.recordingEnabled,
     };
   }
 }

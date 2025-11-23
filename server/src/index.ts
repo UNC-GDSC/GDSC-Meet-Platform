@@ -6,6 +6,10 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import compression from 'compression';
 import RoomManager from './services/RoomManager';
+import AuthService from './services/AuthService';
+import WaitingRoomService from './services/WaitingRoom';
+import RecordingService from './services/RecordingService';
+import RateLimiter from './middleware/rateLimiter';
 import { registerSocketHandlers } from './handlers/socketHandlers';
 import logger from './utils/logger';
 
@@ -29,8 +33,18 @@ app.use(compression());
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
 
+// Rate limiting
+const rateLimiter = new RateLimiter(60000, 100);
+app.use(rateLimiter.middleware());
+
 const maxParticipants = parseInt(process.env.MAX_PARTICIPANTS_PER_ROOM || '50', 10);
 const roomManager = new RoomManager(maxParticipants);
+const authService = new AuthService();
+const waitingRoomService = new WaitingRoomService();
+const recordingService = new RecordingService();
+
+// Cleanup old passwords every hour
+setInterval(() => authService.cleanup(), 3600000);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -64,7 +78,7 @@ app.get('/api/rooms/:roomId', (req, res) => {
   }
 });
 
-registerSocketHandlers(io, roomManager);
+registerSocketHandlers(io, roomManager, authService, waitingRoomService, recordingService);
 
 const PORT = process.env.PORT || 3001;
 

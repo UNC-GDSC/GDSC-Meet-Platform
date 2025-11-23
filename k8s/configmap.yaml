@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gdsc-meet-config
+data:
+  cors-origin: "https://yourdomain.com"
+  max-participants: "50"

@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gdsc-meet-server
+  labels:
+    app: gdsc-meet
+    component: server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: gdsc-meet
+      component: server
+  template:
+    metadata:
+      labels:
+        app: gdsc-meet
+        component: server
+    spec:
+      containers:
+      - name: server
+        image: gdsc-meet-server:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3001"
+        - name: CORS_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: gdsc-meet-config
+              key: cors-origin
+        - name: MAX_PARTICIPANTS_PER_ROOM
+          value: "50"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gdsc-meet-client
+  labels:
+    app: gdsc-meet
+    component: client
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gdsc-meet
+      component: client
+  template:
+    metadata:
+      labels:
+        app: gdsc-meet
+        component: client
+    spec:
+      containers:
+      - name: client
+        image: gdsc-meet-client:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

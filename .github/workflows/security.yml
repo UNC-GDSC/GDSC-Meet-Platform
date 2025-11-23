@@ -1,0 +1,71 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
+
+jobs:
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run npm audit (server)
+      working-directory: ./server
+      run: npm audit --audit-level=moderate
+      continue-on-error: true
+
+    - name: Run npm audit (client)
+      working-directory: ./client
+      run: npm audit --audit-level=moderate
+      continue-on-error: true
+
+  code-scan:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: javascript, typescript
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+  docker-scan:
+    name: Docker Image Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build server image
+      run: docker build -f Dockerfile.server -t gdsc-meet-server:test .
+
+    - name: Run Trivy scanner (server)
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: gdsc-meet-server:test
+        format: 'sarif'
+        output: 'trivy-server-results.sarif'
+
+    - name: Build client image
+      run: docker build -f Dockerfile.client -t gdsc-meet-client:test .
+
+    - name: Run Trivy scanner (client)
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: gdsc-meet-client:test
+        format: 'sarif'
+        output: 'trivy-client-results.sarif'

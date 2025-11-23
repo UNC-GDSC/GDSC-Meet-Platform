@@ -5,6 +5,9 @@ export interface Participant {
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
   isScreenSharing: boolean;
+  isHandRaised: boolean;
+  reaction?: string;
+  role: 'host' | 'participant';
   joinedAt: Date;
 }
 
@@ -14,6 +17,12 @@ export interface Room {
   participants: Map<string, Participant>;
   createdAt: Date;
   createdBy: string;
+  hostId: string;
+  isLocked: boolean;
+  hasPassword: boolean;
+  waitingRoomEnabled: boolean;
+  recordingEnabled: boolean;
+  maxParticipants: number;
 }
 
 export interface SignalData {
@@ -42,11 +51,15 @@ export interface MediaState {
 export interface JoinRoomPayload {
   roomId: string;
   participantName: string;
+  password?: string;
 }
 
 export interface CreateRoomPayload {
   roomName: string;
   participantName: string;
+  password?: string;
+  waitingRoomEnabled?: boolean;
+  maxParticipants?: number;
 }
 
 export interface SendSignalPayload {
@@ -66,4 +79,23 @@ export interface UpdateMediaStatePayload {
   isAudioEnabled?: boolean;
   isVideoEnabled?: boolean;
   isScreenSharing?: boolean;
+  isHandRaised?: boolean;
+  reaction?: string;
+}
+
+export interface HostAction {
+  roomId: string;
+  action: 'kick' | 'mute' | 'muteAll' | 'lock' | 'unlock' | 'endMeeting';
+  targetParticipantId?: string;
+}
+
+export interface WaitingRoomAction {
+  roomId: string;
+  participantId: string;
+  action: 'admit' | 'reject';
+}
+
+export interface RecordingAction {
+  roomId: string;
+  action: 'start' | 'stop';
 }

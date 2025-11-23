@@ -12,6 +12,15 @@ A fully production-ready, collaborative video conferencing platform similar to G
 - 💬 **Real-time Chat** - Text messaging during calls
 - 👥 **Multi-participant Support** - Up to 50 participants per room
 - 🔒 **Secure WebRTC** - Peer-to-peer encrypted connections
+- 🎬 **Meeting Recording** - Record meetings for later playback
+- ✋ **Reactions & Hand Raise** - Express yourself during calls
+
+### Advanced Room Features
+- 🔐 **Password Protection** - Secure rooms with passwords
+- 🚪 **Waiting Room** - Control who joins your meeting
+- 👑 **Host Controls** - Kick, mute, lock room, end meeting
+- 🔇 **Mute All** - Host can mute all participants
+- 🔒 **Room Locking** - Prevent new participants from joining
 
 ### User Experience
 - 📱 **Responsive Design** - Works on desktop, tablet, and mobile
@@ -19,13 +28,18 @@ A fully production-ready, collaborative video conferencing platform similar to G
 - 🔔 **Connection Quality Monitoring** - Real-time connection status
 - 🎭 **Participant Management** - See all participants and their status
 - 🚀 **Quick Join** - Simple room creation and joining
+- ⚡ **Error Boundaries** - Graceful error handling
 
-### Technical Features
-- 🏗️ **Production-Ready** - Docker deployment, logging, error handling
-- ⚡ **High Performance** - Optimized WebRTC connections
-- 🔄 **Auto-reconnection** - Handles network interruptions
-- 📊 **Monitoring** - Connection quality and statistics
-- 🛡️ **Security** - Helmet.js, CORS, input validation
+### Enterprise Features
+- 🏗️ **Kubernetes Ready** - Full K8s deployment configs
+- 📊 **Monitoring & Metrics** - Prometheus & Grafana integration
+- 🔄 **Auto-scaling** - Horizontal Pod Autoscaling
+- 🛡️ **Rate Limiting** - Protection against abuse
+- 🔐 **Security Hardening** - Helmet.js, CORS, input validation
+- 🔍 **Logging** - Structured logging with Winston
+- 🚀 **CI/CD Pipeline** - GitHub Actions automation
+- 🧪 **Testing** - Comprehensive test suite
+- 📈 **Production Monitoring** - Health checks and observability
 
 ## 🏗️ Architecture
 
